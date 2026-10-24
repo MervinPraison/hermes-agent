@@ -36,7 +36,7 @@ DEFAULT_DATASETS = [
 ]
 
 
-def load_dataset_from_hf(dataset_name: str) -> list[dict[str, Any]]:
+def load_dataset_from_hf(dataset_name: str) -> List[Dict[str, Any]]:
     """
     Load a dataset from HuggingFace.
     
@@ -85,7 +85,7 @@ def _init_tokenizer_worker(tokenizer_name: str):
     _TOKENIZER = AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True)
 
 
-def _count_tokens_for_entry(entry: dict) -> tuple[dict, int]:
+def _count_tokens_for_entry(entry: Dict) -> Tuple[Dict, int]:
     """
     Count tokens for a single entry (used in parallel processing).
     
@@ -115,13 +115,13 @@ def _count_tokens_for_entry(entry: dict) -> tuple[dict, int]:
 
 
 def sample_from_datasets(
-    datasets: list[str],
+    datasets: List[str],
     total_samples: int,
     min_tokens: int = 16000,
     tokenizer_name: str = "moonshotai/Kimi-K2-Thinking",
     seed: int = 42,
     num_proc: int = 8
-) -> list[dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """
     Load all datasets, filter by token count, then randomly sample from combined pool.
     
@@ -211,7 +211,7 @@ def sample_from_datasets(
         source = entry.get("_source_dataset", "unknown").split("/")[-1]
         source_counts[source] = source_counts.get(source, 0) + 1
     
-    print("\n📌 Sample distribution by source:")
+    print(f"\n📌 Sample distribution by source:")
     for source, count in sorted(source_counts.items()):
         print(f"      {source}: {count:,}")
     
@@ -222,7 +222,7 @@ def sample_from_datasets(
 
 
 def save_samples_for_compression(
-    samples: list[dict[str, Any]],
+    samples: List[Dict[str, Any]],
     output_dir: Path,
     batch_size: int = 100
 ):
@@ -249,7 +249,8 @@ def save_samples_for_compression(
         
         output_file = output_dir / f"batch_{i}.jsonl"
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.writelines(json.dumps(entry, ensure_ascii=False) + '\n' for entry in batch)
+            for entry in batch:
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
     
     print(f"   ✅ Saved {num_batches} batch files")
 
@@ -268,7 +269,7 @@ def run_compression(input_dir: Path, output_dir: Path, config_path: str):
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from trajectory_compressor import TrajectoryCompressor, CompressionConfig
     
-    print("\n🗜️  Running trajectory compression...")
+    print(f"\n🗜️  Running trajectory compression...")
     print(f"   Input: {input_dir}")
     print(f"   Output: {output_dir}")
     print(f"   Config: {config_path}")
@@ -297,7 +298,7 @@ def merge_output_to_single_jsonl(input_dir: Path, output_file: Path):
     for jsonl_file in sorted(input_dir.glob("*.jsonl")):
         if jsonl_file.name == output_file.name:
             continue
-        with open(jsonl_file, 'r', encoding='utf-8-sig') as f:
+        with open(jsonl_file, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -305,7 +306,8 @@ def merge_output_to_single_jsonl(input_dir: Path, output_file: Path):
     
     # Write merged file
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.writelines(json.dumps(entry, ensure_ascii=False) + '\n' for entry in all_entries)
+        for entry in all_entries:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
     
     print(f"   ✅ Merged {len(all_entries):,} entries into {output_file.name}")
     return output_file
@@ -314,7 +316,7 @@ def merge_output_to_single_jsonl(input_dir: Path, output_file: Path):
 def main(
     total_samples: int = 2500,
     output_name: str = "compressed_agentic",
-    datasets: str | None = None,
+    datasets: str = None,
     config: str = "configs/trajectory_compression.yaml",
     seed: int = 42,
     batch_size: int = 100,
@@ -346,7 +348,7 @@ def main(
     else:
         dataset_list = DEFAULT_DATASETS
     
-    print("\n📋 Configuration:")
+    print(f"\n📋 Configuration:")
     print(f"   Total samples: {total_samples:,}")
     print(f"   Min tokens filter: {min_tokens:,}")
     print(f"   Parallel workers: {num_proc}")
@@ -399,7 +401,7 @@ def main(
     print(f"\n📁 Raw samples:        {sampled_dir}")
     print(f"📁 Compressed batches: {compressed_dir}")
     print(f"📁 Final output:       {final_output}")
-    print("\nTo upload to HuggingFace:")
+    print(f"\nTo upload to HuggingFace:")
     print(f"   huggingface-cli upload NousResearch/{output_name} {final_output}")
 
 
